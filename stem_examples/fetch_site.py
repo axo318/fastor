@@ -57,14 +57,18 @@ def scan(controller, path):
 
         print('Sending query ...')
         check_page = query('https://check.torproject.org/')
-        print('Query received', check_page)
+        print('Reply received')
 
         if 'Congratulations. This browser is configured to use Tor.' not in check_page:
             raise ValueError("Request didn't have the right content")
 
+        print('Correct Response!')
+
         return time.time() - start_time
     finally:
+        print('finally begins')
         controller.remove_event_listener(attach_stream)
+        print('finally continues')
         controller.reset_conf('__LeaveStreamsUnattached')
 
 
