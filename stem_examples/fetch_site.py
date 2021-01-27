@@ -3,12 +3,12 @@ import time
 import pycurl
 import stem.control
 
-# Static exit for us to make 2-hop circuits through. Picking aurora, a
+# Static exit for us to make 2-hop circuits through. Picking ExitNinja, a
 # particularly beefy one...
 #
 #   https://metrics.torproject.org/rs.html#details/379FB450010D17078B3766C2273303C358C3A442
 
-EXIT_FINGERPRINT = '379FB450010D17078B3766C2273303C358C3A442'
+EXIT_FINGERPRINT = '749EF4A434DFD00DAB31E93DE86233FB916D31E3'
 
 SOCKS_PORT = 9050
 CONNECTION_TIMEOUT = 30  # timeout before we give up on a circuit
