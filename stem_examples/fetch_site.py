@@ -10,14 +10,17 @@ import stem.control
 
 EXIT_FINGERPRINT = '749EF4A434DFD00DAB31E93DE86233FB916D31E3'
 
+# TARGET = 'https://check.torproject.org/'
+TARGET = 'http://a5a7aram.ddns.net:8000/site.html'
+
 SOCKS_PORT = 9050
 CONNECTION_TIMEOUT = 30  # timeout before we give up on a circuit
 
 
 def query(url):
     """
-  Uses pycurl to fetch a site using the proxy on the SOCKS_PORT.
-  """
+    Uses pycurl to fetch a site using the proxy on the SOCKS_PORT.
+    """
 
     output = BytesIO()
 
@@ -55,20 +58,14 @@ def scan(controller, path):
         controller.set_conf('__LeaveStreamsUnattached', '1')  # leave stream management to us
         start_time = time.time()
 
-        print('Sending query ...')
-        check_page = query('https://check.torproject.org/')
-        print('Reply received')
+        check_page = query(TARGET)
 
         if 'Congratulations. This browser is configured to use Tor.' not in check_page.decode("utf-8"):
             raise ValueError("Request didn't have the right content")
 
-        print('Correct Response!')
-
         return time.time() - start_time
     finally:
-        print('finally begins')
         controller.remove_event_listener(attach_stream)
-        print('finally continues')
         controller.reset_conf('__LeaveStreamsUnattached')
 
 
@@ -78,9 +75,9 @@ with stem.control.Controller.from_port() as controller:
     relay_fingerprints = [desc.fingerprint for desc in controller.get_network_statuses()]
 
     for fingerprint in relay_fingerprints:
-        # try:
-        time_taken = scan(controller, [fingerprint, EXIT_FINGERPRINT])
-        print('%s => %0.2f seconds' % (fingerprint, time_taken))
-        # except Exception as exc:
-        #     print('%s => %s' % (fingerprint, exc))
-        #     break
+        try:
+            time_taken = scan(controller, [fingerprint, EXIT_FINGERPRINT])
+            print('%s => %0.2f seconds' % (fingerprint, time_taken))
+        except Exception as exc:
+            print('%s => %s' % (fingerprint, exc))
+            break
