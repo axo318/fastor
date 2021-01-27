@@ -59,7 +59,7 @@ def scan(controller, path):
         check_page = query('https://check.torproject.org/')
         print('Reply received')
 
-        if 'Congratulations. This browser is configured to use Tor.' not in check_page:
+        if 'Congratulations. This browser is configured to use Tor.' not in check_page.decode("utf-8"):
             raise ValueError("Request didn't have the right content")
 
         print('Correct Response!')
