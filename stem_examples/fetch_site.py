@@ -78,9 +78,9 @@ with stem.control.Controller.from_port() as controller:
     relay_fingerprints = [desc.fingerprint for desc in controller.get_network_statuses()]
 
     for fingerprint in relay_fingerprints:
-        try:
-            time_taken = scan(controller, [fingerprint, EXIT_FINGERPRINT])
-            print('%s => %0.2f seconds' % (fingerprint, time_taken))
-        except Exception as exc:
-            print('%s => %s' % (fingerprint, exc))
-            break
+        # try:
+        time_taken = scan(controller, [fingerprint, EXIT_FINGERPRINT])
+        print('%s => %0.2f seconds' % (fingerprint, time_taken))
+        # except Exception as exc:
+        #     print('%s => %s' % (fingerprint, exc))
+        #     break
