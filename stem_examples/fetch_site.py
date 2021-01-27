@@ -27,8 +27,8 @@ def query(url):
     query.setopt(pycurl.PROXYPORT, SOCKS_PORT)
     query.setopt(pycurl.PROXYTYPE, pycurl.PROXYTYPE_SOCKS5_HOSTNAME)
     query.setopt(pycurl.CONNECTTIMEOUT, CONNECTION_TIMEOUT)
-    # query.setopt(pycurl.WRITEFUNCTION, output.write)
-    query.setopt(pycurl.WRITEFUNCTION, output)
+    query.setopt(pycurl.WRITEFUNCTION, output.write)
+    # query.setopt(pycurl.WRITEFUNCTION, output)
 
     try:
         query.perform()
@@ -55,7 +55,9 @@ def scan(controller, path):
         controller.set_conf('__LeaveStreamsUnattached', '1')  # leave stream management to us
         start_time = time.time()
 
+        print('Sending query ...')
         check_page = query('https://check.torproject.org/')
+        print('Query received', check_page)
 
         if 'Congratulations. This browser is configured to use Tor.' not in check_page:
             raise ValueError("Request didn't have the right content")
@@ -77,3 +79,4 @@ with stem.control.Controller.from_port() as controller:
             print('%s => %0.2f seconds' % (fingerprint, time_taken))
         except Exception as exc:
             print('%s => %s' % (fingerprint, exc))
+            break
