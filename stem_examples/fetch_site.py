@@ -60,7 +60,7 @@ def scan(controller, path):
 
         check_page = query(TARGET)
 
-        if 'Congratulations. This browser is configured to use Tor.' not in check_page.decode("utf-8"):
+        if 'van' not in check_page.decode("utf-8"):
             raise ValueError("Request didn't have the right content")
 
         return time.time() - start_time
