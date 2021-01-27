@@ -1,8 +1,6 @@
-import StringIO
+from io import BytesIO
 import time
-
 import pycurl
-
 import stem.control
 
 # Static exit for us to make 2-hop circuits through. Picking aurora, a
@@ -20,7 +18,7 @@ def query(url):
   Uses pycurl to fetch a site using the proxy on the SOCKS_PORT.
   """
 
-  output = StringIO.StringIO()
+  output = BytesIO()
 
   query = pycurl.Curl()
   query.setopt(pycurl.URL, url)
