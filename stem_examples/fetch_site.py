@@ -9,6 +9,7 @@ import stem.control
 #   https://metrics.torproject.org/rs.html#details/379FB450010D17078B3766C2273303C358C3A442
 
 EXIT_FINGERPRINT = '749EF4A434DFD00DAB31E93DE86233FB916D31E3'
+ENTRY_FINGERPRINT = '708A968F3644F8A547156368FEA3DB664110E631'
 
 # TARGET = 'https://check.torproject.org/'
 TARGET = 'http://a5a7aram.ddns.net:8000/site.html'
@@ -76,7 +77,7 @@ with stem.control.Controller.from_port() as controller:
 
     for fingerprint in relay_fingerprints:
         try:
-            time_taken = scan(controller, [fingerprint, EXIT_FINGERPRINT])
+            time_taken = scan(controller, [ENTRY_FINGERPRINT, fingerprint, EXIT_FINGERPRINT])
             print('%s => %0.2f seconds' % (fingerprint, time_taken))
         except Exception as exc:
             print('%s => %s' % (fingerprint, exc))
