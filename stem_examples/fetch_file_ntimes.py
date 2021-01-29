@@ -56,20 +56,28 @@ def scan(controller, path):
 
     controller.add_event_listener(attach_stream, stem.control.EventType.STREAM)
 
-    try:
-        controller.set_conf('__LeaveStreamsUnattached', '1')  # leave stream management to us
-        start_time = time.time()
+    times = []
 
-        check_page = query(TARGET)
+    for i in range(5):
 
-        if 'van' not in check_page.decode("utf-8"):
-            raise ValueError("Request didn't have the right content")
+        try:
+            controller.set_conf('__LeaveStreamsUnattached', '1')  # leave stream management to us
 
-        return time.time() - start_time
+            for i in range(5):
+                start_time = time.time()
 
-    finally:
-        controller.remove_event_listener(attach_stream)
-        controller.reset_conf('__LeaveStreamsUnattached')
+                check_page = query(TARGET)
+
+                if 'van' not in check_page.decode("utf-8"):
+                    raise ValueError("Request didn't have the right content")
+
+                times.append(time.time() - start_time)
+
+            return times
+
+        finally:
+            controller.remove_event_listener(attach_stream)
+            controller.reset_conf('__LeaveStreamsUnattached')
 
 
 with stem.control.Controller.from_port() as controller:
@@ -79,8 +87,9 @@ with stem.control.Controller.from_port() as controller:
 
     for fingerprint in relay_fingerprints:
         try:
-            time_taken = scan(controller, [fingerprint, EXIT_FINGERPRINT])
-            print('%s => %0.2f seconds' % (fingerprint, time_taken))
+            times_taken = scan(controller, [fingerprint, EXIT_FINGERPRINT])
+            times_taken = ['%0.2f'%x for x in times_taken]
+            print('%s => %s seconds' % (fingerprint, ' '.join(times_taken)))
         except Exception as exc:
             print('%s => %s' % (fingerprint, exc))
             break
