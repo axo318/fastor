@@ -12,6 +12,7 @@ This script will start collecting bandwidth data from all Tor relays.
 
 # IMPORTS
 
+import sys
 import json
 import datetime
 import time
@@ -126,7 +127,7 @@ class Database:
         if not skip_list:
             self.logger("Database INFO: The skip list was not found or is empty")
 
-        return db.get('skip', list())
+        return db.get('skip')
 
     def update(self, skip_list, new_measurements):
         db = self._retrieve()
@@ -192,6 +193,8 @@ class MeasurementHandler:
 
     # Public methods
     def initialize(self, skip_list):
+        if skip_list is None:
+            skip_list = list()
         self.skip_list = skip_list
         if self._initTorController():
             if self._buildRelayQueue():
@@ -437,4 +440,7 @@ def main(verbose=False):
 
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "-v":
+        main(True)
+    else:
+        main()
