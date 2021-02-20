@@ -2,5 +2,5 @@
   "anchor": "749EF4A434DFD00DAB31E93DE86233FB916D31E3",
   "target_file_URL": "http://a5a7aram.ddns.net:8000/file.txt",
   "target_file_size_kb" : 1,
-  "repeats_per_relay" : 5
+  "repeats_per_relay" : 10
 }

@@ -83,7 +83,7 @@ class CustomConfig(dict):
         for key in self.keys():
             val = self[key]
             s += f"{key}<>{val},"
-        return s[:-2]
+        return s[:-1]
 
 
 class CustomLogger:
