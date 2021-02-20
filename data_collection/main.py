@@ -137,8 +137,8 @@ class Database:
         measurement_dicts = [x.asDict() for x in new_measurements]
 
         for m_dict in measurement_dicts:
-            for config, info in m_dict:
-                db[config].append(info)
+            for config in m_dict.keys():
+                db[config].append(m_dict[config])
 
         try:
             with open(self.db_file, 'w') as outfile:
