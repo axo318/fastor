@@ -266,8 +266,13 @@ class MeasurementHandler:
     # Relays
     def _buildRelayQueue(self):
         fps = self._readConsensus()
-        self.relay_queue = [x for x in fps if x not in fps]
-        return True
+        self.relay_queue = [x for x in fps if x not in self.skip_list]
+
+        if self.relay_queue:
+            return True
+        else:
+            self.logger("MeasurementHandler ERROR: Relay queue is empty.")
+            return False
 
     def _readConsensus(self):
         return [desc.fingerprint for desc in self.tor_controller.get_network_statuses()]
