@@ -21,6 +21,7 @@ import hashlib
 from io import BytesIO
 import stem.control
 from collections import defaultdict
+import pycurl
 
 
 # VARIABLES
