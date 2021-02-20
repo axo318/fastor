@@ -127,7 +127,6 @@ class Database:
 
         if not skip_list:
             self.logger("Database INFO: The skip list was not found or is empty")
-            self.logger(db)
 
         return db.get('skip')
 
@@ -156,8 +155,7 @@ class Database:
                 for key in data.keys():
                     db[key] = data[key]
         except Exception as ex:
-            self.logger(f"Database ERROR: Could not read {self.db_file}")
-            self.logger(str(ex))
+            self.logger(f"Database ERROR: Could not read {self.db_file}, {str(ex)}")
         return db
 
 
@@ -342,6 +340,12 @@ class Controller:
         self.logger("----------------------------")
         self.logger("INFO: Controller is starting")
 
+        # Initialize torHandler
+        skip_list = self.database.getSkipList()
+        if not self.torHandler.initialize(skip_list):
+            self.logger(f"ERROR: Tor authentication has failed")
+            raise KeyboardInterrupt
+
         # Start measurements
         self._running = True
         self._startTimer()
@@ -415,19 +419,14 @@ class Controller:
 
     # Measuring
     def _measure(self):
-        skip_list = self.database.getSkipList()
-        authenticated = self.torHandler.initialize(skip_list)
-
-        if not authenticated:
-            self.logger(f"ERROR: Tor authentication has failed")
-            raise KeyboardInterrupt
-
         while self._running:
             valid_flag = self.torHandler.measureNext()
             if not valid_flag:
                 self.logger(f"ERROR: TorHandler returned a dirty flag. Exiting")
                 raise KeyboardInterrupt
 
+
+# MAIN
 
 def main(verbose=False):
     controller = Controller(CONFIG_FILE, DATABASE_FILE, LOGS_FILE)

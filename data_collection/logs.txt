@@ -1,0 +1,29 @@
+
+[2021-02-20 T 20:27:12.957449] ----------------------------
+[2021-02-20 T 20:27:12.957687] INFO: Controller is starting
+[2021-02-20 T 20:27:12.959142] Database ERROR: Could not read measurements.json
+[2021-02-20 T 20:27:12.959281] Expecting value: line 2 column 1 (char 1)
+[2021-02-20 T 20:27:12.959372] defaultdict(<class 'list'>, {})
+[2021-02-20 T 20:27:12.959476] Database INFO: The skip list was not found or is empty
+[2021-02-20 T 20:27:12.979971] MeasurementHandler INFO: Tor is running version 0.3.5.10
+[2021-02-20 T 20:27:15.605264] MeasurementHandler INFO: Initialized successfully and skipping 0 relays
+[2021-02-20 T 20:27:15.606203] INFO: Config has been updated:
+<> anchor: 749EF4A434DFD00DAB31E93DE86233FB916D31E3
+<> target_file_URL: http://a5a7aram.ddns.net:8000/file.txt
+<> target_file_size_kb: 1
+<> repeats_per_relay: 10
+
+[2021-02-20 T 20:27:15.606678] Database ERROR: Could not read measurements.json
+[2021-02-20 T 20:27:15.606800] Expecting value: line 2 column 1 (char 1)
+[2021-02-20 T 20:27:15.606879] defaultdict(<class 'list'>, {})
+[2021-02-20 T 20:27:24.209156] defaultdict(<class 'list'>, {'skip': []})
+[2021-02-20 T 20:29:31.843812] ----------------------------
+[2021-02-20 T 20:29:31.844056] INFO: Controller is starting
+[2021-02-20 T 20:29:31.864876] MeasurementHandler INFO: Tor is running version 0.3.5.10
+[2021-02-20 T 20:29:34.501154] MeasurementHandler INFO: Initialized successfully and skipping 2 relays
+[2021-02-20 T 20:29:34.502102] INFO: Config has been updated:
+<> anchor: 749EF4A434DFD00DAB31E93DE86233FB916D31E3
+<> target_file_URL: http://a5a7aram.ddns.net:8000/file.txt
+<> target_file_size_kb: 1
+<> repeats_per_relay: 10
+
