@@ -1,5 +1,6 @@
 {
   "anchor": "example_anchor",
   "target_file_URL": "example.com/target_file_URL",
-  "target_file_size_kb" : 1
+  "target_file_size_kb" : 1,
+  "repeats_per_relay" : 5
 }

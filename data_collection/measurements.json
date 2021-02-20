@@ -1,0 +1,8 @@
+{
+  "skip" : [],
+  "key<>value,key<>value,key<>value" :
+    [ {"timestamp": "12", "relay":"ninja", "times": [10,10,10]},
+      {"timestamp": "12", "relay":"ninja", "times": [10,10,10]},
+      {"timestamp": "12", "relay":"ninja", "times": [10,10,10]}
+    ]
+}

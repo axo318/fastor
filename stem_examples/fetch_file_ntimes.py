@@ -33,7 +33,6 @@ def query(url):
     query.setopt(pycurl.PROXYTYPE, pycurl.PROXYTYPE_SOCKS5_HOSTNAME)
     query.setopt(pycurl.CONNECTTIMEOUT, CONNECTION_TIMEOUT)
     query.setopt(pycurl.WRITEFUNCTION, output.write)
-    # query.setopt(pycurl.WRITEFUNCTION, output)
 
     try:
         query.perform()
@@ -58,26 +57,24 @@ def scan(controller, path):
 
     times = []
 
-    for i in range(5):
+    try:
+        controller.set_conf('__LeaveStreamsUnattached', '1')  # leave stream management to us
 
-        try:
-            controller.set_conf('__LeaveStreamsUnattached', '1')  # leave stream management to us
+        for i in range(5):
+            start_time = time.time()
+            check_page = query(TARGET)
+            time_taken = time.time() - start_time
 
-            for i in range(5):
-                start_time = time.time()
+            if 'van' not in check_page.decode("utf-8"):
+                raise ValueError("Request didn't have the right content")
 
-                check_page = query(TARGET)
+            times.append(time_taken)
 
-                if 'van' not in check_page.decode("utf-8"):
-                    raise ValueError("Request didn't have the right content")
+        return times
 
-                times.append(time.time() - start_time)
-
-            return times
-
-        finally:
-            controller.remove_event_listener(attach_stream)
-            controller.reset_conf('__LeaveStreamsUnattached')
+    finally:
+        controller.remove_event_listener(attach_stream)
+        controller.reset_conf('__LeaveStreamsUnattached')
 
 
 with stem.control.Controller.from_port() as controller:
@@ -92,4 +89,4 @@ with stem.control.Controller.from_port() as controller:
             print('%s => %s seconds' % (fingerprint, ' '.join(times_taken)))
         except Exception as exc:
             print('%s => %s' % (fingerprint, exc))
-            break
+            # break

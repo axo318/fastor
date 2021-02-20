@@ -14,10 +14,12 @@ This script will start collecting bandwidth data from all Tor relays.
 
 import json
 import datetime
+import time
 from threading import Timer
 import hashlib
 from io import BytesIO
-
+import stem.control
+from collections import defaultdict
 
 
 # VARIABLES
@@ -28,7 +30,13 @@ LOGS_FILE = "logs.txt"
 DATA_UPDATE_TIMER_SECONDS = 10
 
 SOCKS_PORT = 9050
-CONNECTION_TIMEOUT = 30  # timeout before we give up on a circuit
+CONNECTION_TIMEOUT = 15  # timeout before we give up on a circuit
+
+
+# UTILS
+
+def getTimestamp():
+    return datetime.datetime.now().strftime("%Y-%m-%d T %H:%M:%S.%f")
 
 
 # CLASSES
@@ -68,6 +76,13 @@ class CustomConfig(dict):
             s += f"<> {key}: {val}\n"
         return s
 
+    def serialize(self):
+        s = ""
+        for key in self.keys():
+            val = self[key]
+            s += f"{key}<>{val},"
+        return s[:-2]
+
 
 class CustomLogger:
     def __init__(self, path, print_logs=False):
@@ -79,7 +94,7 @@ class CustomLogger:
         self.add(*args, **kwargs)
 
     def add(self, msg):
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d T %H:%M:%S.%f")
+        timestamp = getTimestamp()
         log = f"[{timestamp}] {msg}\n"
         self.cache.append(log)
 
@@ -99,21 +114,210 @@ class CustomLogger:
             print(str(ex))
 
 
-class TorHandler:
-    def __init__(self):
+class Database:
+    def __init__(self, db_file, logger):
+        self.db_file = db_file
+        self.logger = logger
+
+    def getSkipList(self):
+        db = self._retrieve()
+        skip_list = db.get('skip', list())
+
+        if not skip_list:
+            self.logger("Database INFO: The skip list was not found or is empty")
+
+        return db.get('skip', list())
+
+    def update(self, skip_list, new_measurements):
+        db = self._retrieve()
+        db['skip'] = skip_list
+
+        measurement_dicts = [x.asDict() for x in new_measurements]
+
+        for m_dict in measurement_dicts:
+            for config, info in m_dict:
+                db[config].append(info)
+
+        try:
+            with open(self.db_file, 'w') as outfile:
+                json.dump(db, outfile)
+        except Exception as ex:
+            self.logger(f"Database ERROR: Could not save to {self.db_file}")
+            self.logger(str(ex))
+
+    def _retrieve(self):
+        db = defaultdict(list)
+        try:
+            with open(self.db_file) as json_file:
+                data = json.load(json_file)
+                for key in data.keys():
+                    db[key] = data[key]
+        except Exception as ex:
+            self.logger(f"Database ERROR: Could not read {self.db_file}")
+            self.logger(str(ex))
+        return db
+
+
+class Measurement:
+    def __init__(self, timestamp, relay, times, config_serialized):
+        self.timestamp = timestamp
+        self.relay = relay
+        self.times = times
+        self.config_serialized = config_serialized
+
+    def asDict(self):
+        info = {'timestamp': self.timestamp, 'relay': self.relay, 'times': self.times}
+        return {self.config_serialized: info}
+
+
+class MeasurementHandler:
+    def __init__(self, logger):
         self.socks_port = SOCKS_PORT
         self.conn_timeout = CONNECTION_TIMEOUT
-        self.logger = None
+        self.logger = logger
+
+        self.config = None
+        self.anchor = None
         self.url = None
-    
+        self.file_size = None
+        self.repeats = 5
+
+        self.tor_controller = None
+        self.relay_queue = None
+        self.skip_list = None
+
+        self.measurement_cache = list()
+
+        self._initialized = False
+
+    # Public methods
+    def initialize(self, skip_list):
+        self.skip_list = skip_list
+        if self._initTorController():
+            if self._buildRelayQueue():
+                self._initialized = True
+                self.logger(f"MeasurementHandler INFO: Initialized successfully and skipping {len(skip_list)} relays")
+                return True
+        return False
+
+    def stop(self):
+        self.tor_controller.close()
+        self.tor_controller = None
+        self.skip_list = None
+        self._initialized = False
+
+    def updateConfig(self, config):
+        self.config = config
+        self.anchor = config.get('anchor', None)
+        self.url = config.get('target_file_URL', None)
+        self.file_size = config.get('target_file_size_kb', None)
+        self.repeats = config.get('repeats_per_relay', 5)
+
+    def dumpMeasurementCache(self):
+        cache = self.measurement_cache.copy()
+        self.measurement_cache.clear()
+        return cache
+
+    def measureNext(self):
+        if not self._initialized:
+            return
+
+        if not self.relay_queue:
+            self.skip_list.clear()
+            self._buildRelayQueue()
+
+        next_fp = self.relay_queue.pop()
+        self.skip_list.append(next_fp)
+
+        tor_path = [next_fp, self.anchor]
+        timestamp = getTimestamp()
+        try:
+            times_taken = self._scan(tor_path)
+        except Exception as ex:
+            self.logger(f"MeasurementHandler WARNING: Measurement failed: {next_fp} => {ex}")
+            times_taken = []
+
+        if times_taken:
+            m = Measurement(timestamp, next_fp, times_taken, self.config.serialize())
+            self.measurement_cache.append(m)
+
+    # Tor controller
+    def _initTorController(self):
+        try:
+            self.tor_controller = stem.control.Controller.from_port()
+        except stem.SocketError as exc:
+            self.logger(f"MeasurementHandler ERROR: Unable to connect to tor on port 9051: {exc}")
+            return False
+        try:
+            self.tor_controller.authenticate()
+        except stem.connection.AuthenticationFailure as exc:
+            self.logger(f"MeasurementHandler ERROR: Unable to authenticate: {exc}")
+            return False
+        self.logger(f"MeasurementHandler INFO: Tor is running version {self.tor_controller.get_version()}")
+        return True
+
+    # Relays
+    def _buildRelayQueue(self):
+        fps = self._readConsensus()
+        self.relay_queue = [x for x in fps if x not in fps]
+
+    def _readConsensus(self):
+        return [desc.fingerprint for desc in self.tor_controller.get_network_statuses()]
+
+    # Query handling
+    def _query(self, url):
+        """
+        Uses pycurl to fetch a site using the proxy on the SOCKS_PORT.
+        """
+        output = BytesIO()
+        query = pycurl.Curl()
+        query.setopt(pycurl.URL, url)
+        query.setopt(pycurl.PROXY, 'localhost')
+        query.setopt(pycurl.PROXYPORT, SOCKS_PORT)
+        query.setopt(pycurl.PROXYTYPE, pycurl.PROXYTYPE_SOCKS5_HOSTNAME)
+        query.setopt(pycurl.CONNECTTIMEOUT, CONNECTION_TIMEOUT)
+        query.setopt(pycurl.WRITEFUNCTION, output.write)
+        try:
+            query.perform()
+            return output.getvalue()
+        except pycurl.error as exc:
+            self.logger(f"MeasurementHandler WARNING: Unable to reach {url} ({exc})")
+
+    def _scan(self, path):
+        circuit_id = self.tor_controller.new_circuit(path, await_build=True)
+
+        def attach_stream(stream):
+            if stream.status == 'NEW':
+                self.tor_controller.attach_stream(stream.id, circuit_id)
+
+        self.tor_controller.add_event_listener(attach_stream, stem.control.EventType.STREAM)
+
+        times = []
+        try:
+            self.tor_controller.set_conf('__LeaveStreamsUnattached', '1')  # leave stream management to us
+            for i in range(self.repeats):
+                start_time = time.time()
+                check_page = self._query(self.url)
+                time_taken = time.time() - start_time
+
+                if 'van' not in check_page.decode("utf-8"):
+                    raise ValueError("Request didn't have the right content")
+
+                times.append(time_taken)
+
+            return times
+        finally:
+            self.tor_controller.remove_event_listener(attach_stream)
+            self.tor_controller.reset_conf('__LeaveStreamsUnattached')
 
 
 class Controller:
     def __init__(self, config_file, database_file, log_file):
         self.config_file = config_file
-        self.database_file = database_file
         self.config = CustomConfig()
         self.logger = CustomLogger(log_file)
+        self.torHandler = MeasurementHandler(self.logger)
+        self.database = Database(database_file, self.logger)
         self._repeatedTimer = None
         self._lastConfigHash = ""
         self._running = False
@@ -132,6 +336,7 @@ class Controller:
         self._running = False
         self._stopTimer()
         self._repeatedEvent()       # Syncing the program state before exiting
+        self.torHandler.stop()
         self.logger("INFO: Controller is stopping")
         self.logger("----------------------------")
 
@@ -169,9 +374,6 @@ class Controller:
             self._configChanged()
 
     def _readConfig(self):
-        """
-        Reads json configuration file and sets self.config elements accordingly
-        """
         try:
             with open(self.config_file) as json_file:
                 data = json.load(json_file)
@@ -182,11 +384,15 @@ class Controller:
             self.logger(str(ex))
 
     def _configChanged(self):
+        self.torHandler.updateConfig(self.config)
         self.logger(f"INFO: Config has been updated:\n{self.config}")
 
     # Database handling
     def _syncDatabase(self):
-        pass
+        # Dump cached results of torHandler to database and update skip list
+        cached_measurements = self.torHandler.dumpMeasurementCache()
+        skip_list = self.torHandler.skip_list
+        self.database.update(skip_list, cached_measurements)
 
     # Log handling
     def _dumpLogs(self):
@@ -194,9 +400,15 @@ class Controller:
 
     # Measuring
     def _measure(self):
+        skip_list = self.database.getSkipList()
+        authenticated = self.torHandler.initialize(skip_list)
+
+        if not authenticated:
+            self.logger(f"ERROR: Tor authentication has failed")
+            raise KeyboardInterrupt
 
         while self._running:
-            pass
+            self.torHandler.measureNext()
 
 
 def main(verbose=False):
