@@ -127,6 +127,7 @@ class Database:
 
         if not skip_list:
             self.logger("Database INFO: The skip list was not found or is empty")
+            self.logger(db)
 
         return db.get('skip')
 
