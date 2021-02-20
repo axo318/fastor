@@ -220,11 +220,13 @@ class MeasurementHandler:
 
     def measureNext(self):
         if not self._initialized:
-            return
+            return False
 
         if not self.relay_queue:
             self.skip_list.clear()
-            self._buildRelayQueue()
+            built = self._buildRelayQueue()
+            if not built:
+                return False
 
         next_fp = self.relay_queue.pop()
         self.skip_list.append(next_fp)
@@ -240,6 +242,8 @@ class MeasurementHandler:
         if times_taken:
             m = Measurement(timestamp, next_fp, times_taken, self.config.serialize())
             self.measurement_cache.append(m)
+
+        return True
 
     # Tor controller
     def _initTorController(self):
@@ -260,6 +264,7 @@ class MeasurementHandler:
     def _buildRelayQueue(self):
         fps = self._readConsensus()
         self.relay_queue = [x for x in fps if x not in fps]
+        return True
 
     def _readConsensus(self):
         return [desc.fingerprint for desc in self.tor_controller.get_network_statuses()]
@@ -408,7 +413,10 @@ class Controller:
             raise KeyboardInterrupt
 
         while self._running:
-            self.torHandler.measureNext()
+            valid_flag = self.torHandler.measureNext()
+            if not valid_flag:
+                self.logger(f"ERROR: TorHandler returned a dirty flag. Exiting")
+                raise KeyboardInterrupt
 
 
 def main(verbose=False):
