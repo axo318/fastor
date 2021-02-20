@@ -1,0 +1,9 @@
+[2021-02-20 T 14:10:34.112261] ----------------------------
+[2021-02-20 T 14:10:34.112335] INFO: Controller is starting
+[2021-02-20 T 14:10:34.112539] INFO: Config has been updated:
+<> anchor: example_anchor
+<> target_file_URL: example.com/target_file_URL
+<> target_file_size_kb: 1
+
+[2021-02-20 T 14:10:43.970824] INFO: Controller is stopping
+[2021-02-20 T 14:10:43.970888] ----------------------------

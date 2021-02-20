@@ -1,0 +1,5 @@
+{
+  "anchor": "example_anchor",
+  "target_file_URL": "example.com/target_file_URL",
+  "target_file_size_kb" : 1
+}
