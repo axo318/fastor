@@ -21,12 +21,18 @@ import hashlib
 from io import BytesIO
 import stem.control
 from collections import defaultdict
-import pycurl
+
+try:
+    import pycurl
+except ImportError:
+    pycurl = None
+    print("Could not import pycurl")
 
 
 # VARIABLES
 
 CONFIG_FILE = "config.json"
+STATE_FILE = "state.json"
 DATABASE_FILE = "measurements.json"
 LOGS_FILE = "logs.txt"
 DATA_UPDATE_TIMER_SECONDS = 10
@@ -78,6 +84,7 @@ class CustomConfig(dict):
             s += f"<> {key}: {val}\n"
         return s
 
+    # NOT NEEDED
     def serialize(self):
         s = ""
         for key in self.keys():
@@ -116,59 +123,71 @@ class CustomLogger:
             print(str(ex))
 
 
+class Measurement:
+    def __init__(self, timestamp, relay, times, config):
+        self.timestamp = timestamp
+        self.relay = relay
+        self.times = times
+        self.config = config
+
+    def asDict(self):
+        anchor = self.config.get('anchor', '')
+        file_size = self.config.get('target_file_size_kb', 1)
+        d = {'timestamp': self.timestamp,
+             'anchor': anchor,
+             'file_size_kb': file_size,
+             'relay': self.relay,
+             'times': self.times
+             }
+        return d
+
+
 class Database:
-    def __init__(self, db_file, logger):
-        self.db_file = db_file
+    def __init__(self, measurements_file, state_file, logger):
+        self.measurements_file = measurements_file
+        self.state_file = state_file
         self.logger = logger
 
     def getSkipList(self):
-        db = self._retrieve()
-        skip_list = db.get('skip', list())
+        state = self._retrieveState()
+        skip_list = state.get('skip', list())
 
         if not skip_list:
             self.logger("Database INFO: The skip list was not found or is empty")
 
-        return db.get('skip')
+        return skip_list
 
     def update(self, skip_list, new_measurements):
-        db = self._retrieve()
-        db['skip'] = skip_list
-
-        measurement_dicts = [x.asDict() for x in new_measurements]
-
-        for m_dict in measurement_dicts:
-            for config in m_dict.keys():
-                db[config].append(m_dict[config])
-
+        # Save state
+        state_dict = {'skip': skip_list}
         try:
-            with open(self.db_file, 'w') as outfile:
-                json.dump(db, outfile)
+            with open(self.state_file, 'w') as file:
+                json.dump(state_dict, file)
         except Exception as ex:
-            self.logger(f"Database ERROR: Could not save to {self.db_file}")
+            self.logger(f"Database ERROR: Could not save to {self.state_file}")
             self.logger(str(ex))
 
-    def _retrieve(self):
-        db = defaultdict(list)
+        # Append measurements to file
+        measurement_dicts = [x.asDict() for x in new_measurements]
+        measurement_lines = [json.dumps(d)+'\n' for d in measurement_dicts]
         try:
-            with open(self.db_file) as json_file:
-                data = json.load(json_file)
-                for key in data.keys():
-                    db[key] = data[key]
+            with open(self.measurements_file, 'a') as file:
+                for line in measurement_lines:
+                    file.write(line)
         except Exception as ex:
-            self.logger(f"Database ERROR: Could not read {self.db_file}, {str(ex)}")
-        return db
+            self.logger(f"Database ERROR: Could not save to {self.measurements_file}")
+            self.logger(str(ex))
 
-
-class Measurement:
-    def __init__(self, timestamp, relay, times, config_serialized):
-        self.timestamp = timestamp
-        self.relay = relay
-        self.times = times
-        self.config_serialized = config_serialized
-
-    def asDict(self):
-        info = {'timestamp': self.timestamp, 'relay': self.relay, 'times': self.times}
-        return {self.config_serialized: info}
+    def _retrieveState(self):
+        state = defaultdict(list)
+        try:
+            with open(self.state_file, 'r') as state_file:
+                data = json.load(state_file)
+                for key in data.keys():
+                    state[key] = data[key]
+        except Exception as ex:
+            self.logger(f"Database ERROR: Could not read {self.state_file}, {str(ex)}")
+        return state
 
 
 class MeasurementHandler:
@@ -214,7 +233,7 @@ class MeasurementHandler:
         self.anchor = config.get('anchor', None)
         self.url = config.get('target_file_URL', None)
         self.file_size = config.get('target_file_size_kb', None)
-        self.repeats = config.get('repeats_per_relay', 5)
+        self.repeats = config.get('repeats_per_relay', 10)
 
     def dumpMeasurementCache(self):
         cache = self.measurement_cache.copy()
@@ -243,7 +262,7 @@ class MeasurementHandler:
             times_taken = []
 
         if times_taken:
-            m = Measurement(timestamp, next_fp, times_taken, self.config.serialize())
+            m = Measurement(timestamp, next_fp, times_taken, self.config)
             self.measurement_cache.append(m)
 
         return True
@@ -325,12 +344,12 @@ class MeasurementHandler:
 
 
 class Controller:
-    def __init__(self, config_file, database_file, log_file):
+    def __init__(self, config_file, measurements_file, state_file, log_file):
         self.config_file = config_file
         self.config = CustomConfig()
         self.logger = CustomLogger(log_file)
         self.torHandler = MeasurementHandler(self.logger)
-        self.database = Database(database_file, self.logger)
+        self.database = Database(measurements_file, state_file, self.logger)
         self._repeatedTimer = None
         self._lastConfigHash = ""
         self._running = False
@@ -352,12 +371,12 @@ class Controller:
         self._measure()
 
     def stop(self):
+        self.logger("INFO: Controller is stopping")
+        self.logger("----------------------------")
         self._running = False
         self._stopTimer()
         self._repeatedEvent()       # Syncing the program state before exiting
         self.torHandler.stop()
-        self.logger("INFO: Controller is stopping")
-        self.logger("----------------------------")
 
     # Timer event handling
     def _startTimer(self):
@@ -429,7 +448,7 @@ class Controller:
 # MAIN
 
 def main(verbose=False):
-    controller = Controller(CONFIG_FILE, DATABASE_FILE, LOGS_FILE)
+    controller = Controller(CONFIG_FILE, DATABASE_FILE, STATE_FILE, LOGS_FILE)
 
     if verbose:
         controller.logger.print_logs = True
@@ -450,3 +469,8 @@ if __name__ == '__main__':
         main(True)
     else:
         main()
+
+
+
+
+
