@@ -371,12 +371,12 @@ class Controller:
         self._measure()
 
     def stop(self):
+        self.logger("INFO: Controller is stopping")
+        self.logger("----------------------------")
         self._running = False
         self._stopTimer()
         self._repeatedEvent()       # Syncing the program state before exiting
         self.torHandler.stop()
-        self.logger("INFO: Controller is stopping")
-        self.logger("----------------------------")
 
     # Timer event handling
     def _startTimer(self):
