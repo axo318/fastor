@@ -12,7 +12,7 @@ def getClient(client_type: str = 'fastor') -> 'Client':
                         Supported: ('vanilla', 'fastor')
     :return:
     """
-    ClientSubclass = ClientType.d.get(client_type, None)
+    ClientSubclass = ClientType.d[client_type]
 
     if client_type:
         return ClientSubclass()
@@ -25,7 +25,13 @@ def getClient(client_type: str = 'fastor') -> 'Client':
 
 class Client(FastorObject):
     """ Base class for all client types """
-    pass
+    def request(self, url: str) -> bytes:
+        """ Sends HTTP request to the url provided with an empty query.
+
+        :param url: URL to send pycurl to
+        :return: bytes object containing the response
+        """
+        pass
 
 
 @ClientType.register('vanilla')

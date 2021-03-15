@@ -1,3 +1,5 @@
+from collections import defaultdict
+from typing import Dict
 
 
 def parametrized(dec):
@@ -11,7 +13,7 @@ def parametrized(dec):
 
 class ClientType:
     """ Static class with a decorator for registering client types upon runtime """
-    d = {}
+    d: Dict[str, type] = defaultdict()
 
     @staticmethod
     @parametrized
