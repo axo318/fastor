@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Callable, Dict, List, Any
 
 from fastor.common import FastorObject
-from fastor.events.utils import UIDS, RepeatedTimer, ArgCallable, RepeatingThread
+from fastor.events.utils import UIDS, ArgCallable, RepeatingThread
 
 EVENT_CONDITION_INTERVAL = 2    # Interval between event generation checks (seconds)
 
@@ -30,12 +30,12 @@ class Scheduler(FastorObject):
     # Public #
 
     # Control and event methods (used by user-code)
-    def start(self):
+    def start(self) -> None:
         """ Initializes event thread """
         self.info("Scheduler is initiating.")
         self.event_thread.start()
 
-    def stop(self):
+    def stop(self) -> None:
         """ Stops event thread """
         self.info("Scheduler is terminating.")
         self.event_thread.stop()
