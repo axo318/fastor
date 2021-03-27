@@ -139,8 +139,9 @@ class TorHandler(FastorObject):
             bytes_result = self._send(url)
             time_taken = time.time() - start_time
             return QueryResult(bytes_result.decode("utf-8"), time_taken)
-        except QueryException:
-            self.warn(f"Query failed through circuit {circuit_id}")
+        except QueryException as e:
+            self.warn(f"Query failed through circuit {circuit_id} ({e})")
+            raise TorHandlerException("Failed to perform query")
         finally:
             # Remove circuit's main status
             self.tor_controller.remove_event_listener(attach_stream)
@@ -163,8 +164,8 @@ class TorHandler(FastorObject):
             query.perform()
             return output.getvalue()
         except pycurl.error as exc:
-            self.warn(f"Unable to reach {url} ({exc})")
-            raise QueryException("Query failed")
+            # self.warn(f"Unable to reach {url} ({exc})")
+            raise QueryException("Query failed") from exc
 
 
 class QueryResult(FastorObject):
