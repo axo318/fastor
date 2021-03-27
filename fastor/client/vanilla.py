@@ -80,7 +80,7 @@ class VanillaScheme(Scheme):
 
         # Get middles info
         middle_fingerprints = [d.fingerprint for d in middle_descriptors]
-        middle_bws = [d.bandwidth for d in middle_fingerprints]
+        middle_bws = [d.bandwidth for d in middle_descriptors]
 
         # Get exits info
         exit_fingerprints = [d.fingerprint for d in exit_descriptors]
