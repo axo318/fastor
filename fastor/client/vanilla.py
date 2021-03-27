@@ -6,8 +6,7 @@ import stem
 
 from fastor.client.client import Client, Scheme
 from fastor.client.utils import ClientType
-from fastor.torHandler import TorCircuit
-
+from fastor.torHandler import TorCircuit, TorHandlerException
 
 # Constants
 GUARD_FP = "7A3E534C033E3836BD5AF223B642853C502AB33A"
@@ -22,7 +21,7 @@ RENEW_CIRCUIT_EVENT = "renew_current_circuit"
 
 @ClientType.register('vanilla')
 class VanillaClient(Client):
-    def getScheme(self) -> 'Scheme':
+    def _getScheme(self) -> 'Scheme':
         """ Returns initialized vanilla Tor scheme """
         return VanillaScheme(self, self.tor_handler, GUARD_FP)
 
@@ -56,10 +55,10 @@ class VanillaScheme(Scheme):
         self.scheduler.registerCondition(renew_circuit_condition, RENEW_CIRCUIT_EVENT)
 
         def renew_circuit_event_listener():
-            self.renewCircuit()
+            self.renewCurrentCircuit()
         self.scheduler.addListener(renew_circuit_event_listener, RENEW_CIRCUIT_EVENT)
 
-    def renewCircuit(self) -> None:
+    def renewCurrentCircuit(self) -> None:
         """ Renew current circuit (because of possible errors) """
         self._closeCurrentCircuit()
         self._createNewCurrentCircuit()
@@ -70,8 +69,15 @@ class VanillaScheme(Scheme):
 
     # Private #
     def _createNewCurrentCircuit(self) -> None:
-        circuit_path = self._chooseCircuitPath()
-        self.currentCircuit = self._constructCircuit(circuit_path)
+        """ Chooses and constructs a new circuit through Tor. If construction fails, it retries until success. """
+        while True:
+            circuit_path = self._chooseCircuitPath()
+            try:
+                self.currentCircuit = self._constructCircuit(circuit_path)
+                break
+            except TorHandlerException as e:
+                print(e)
+                self.debug(f"circuit {circuit_path} failed to be constructed. Retrying ...")
 
     def _chooseCircuitPath(self) -> List[str]:
         descriptors = self.consensus.descriptors
@@ -102,7 +108,13 @@ class VanillaScheme(Scheme):
 
         return path
 
-    def _constructCircuit(self, path) -> TorCircuit:
+    def _constructCircuit(self, path: List[str]) -> TorCircuit:
+        """ Attempts to construct the requested circuit
+
+        :param path: Circuit path
+        :raises TorHandlerException
+        :return: TorCircuit
+        """
         circuit_id = self.tor_handler.createCircuit(path, await_build=True)
         time_build = time.time()
         return TorCircuit(circuit_id, time_build, path)

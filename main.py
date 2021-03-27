@@ -13,14 +13,17 @@ def main():
         except ClientException as e:
             print(e)
 
-    worked = False
     res = None
-    while not worked:
+    while True:
         try:
             res = client.query("http://a5a7aram.ddns.net:8000/file.txt")
-            worked = True
         except ClientException as e:
             print(e)
+
+        if res is not None:
+            break
+        else:
+            client.re
 
     print(res)
     client.detach()

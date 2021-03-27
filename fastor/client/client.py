@@ -19,7 +19,7 @@ class Client(FastorObject):
         :param connection_timeout: seconds before we give up on a circuit (default=15)
         """
         self.tor_handler = TorHandler(socks_port, control_port, connection_timeout)
-        self.scheme = self.getScheme()
+        self.scheme = self._getScheme()
         self.attached = False
 
     def attach(self) -> None:
@@ -56,17 +56,36 @@ class Client(FastorObject):
         :return: QueryResult object containing the response
         """
         if self.attached:
-            try:
-                return self.tor_handler.performQuery(url, self.scheme.getCurrentCircuit())
-            except TorHandlerException as e:
-                self.error(f"Query to {url} failed")
-                raise ClientException("Query has failed") from e
+            while True:
+                try:
+                    return self._query(url, attempts=3)
+                except ClientException as e:
+                    print(e)
+                    self.warn("Query has repeatedly failed. Dropping current circuit and constructing a new one")
+                    self.scheme.renewCurrentCircuit()
         else:
             self.warn("Query attempted but client is not attached to Tor instance.")
             raise ClientException("Query attempted but client is not attached to Tor instance.")
 
+    def _query(self, url: str, attempts=3) -> QueryResult:
+        """ Repeatedly attempts to perform query (default 3 attempts)
+
+        :param url:
+        :param attempts=3
+        :raises ClientException if query failed more than 3 times
+        :return:
+        """
+        last_exception = None
+        for i in range(attempts):
+            try:
+                return self.tor_handler.performQuery(url, self.scheme.getCurrentCircuit())
+            except TorHandlerException as e:
+                self.warn(f"Query to {url} failed. Retrying {i + 1}/{attempts}...")
+                last_exception = e
+        raise ClientException(f"Query has failed {attempts} times") from last_exception
+
     # Client-specific methods
-    def getScheme(self) -> 'Scheme':
+    def _getScheme(self) -> 'Scheme':
         """ Returns an initialized scheme object, specific to the client_type
 
         :return: Scheme object
@@ -117,7 +136,7 @@ class Scheme(FastorObject):
         """ Sets up conditions and listeners for updating current information """
         pass
 
-    def renewCircuit(self) -> None:
+    def renewCurrentCircuit(self) -> None:
         """ Renew current circuit (because of possible errors) """
         pass
 
