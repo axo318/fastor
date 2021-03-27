@@ -17,7 +17,7 @@ def main():
     res = None
     while not worked:
         try:
-            res = client.query("http://facebook.com")
+            res = client.query("http://a5a7aram.ddns.net:8000/file.txt")
             worked = True
         except ClientException as e:
             print(e)
