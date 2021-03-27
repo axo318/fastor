@@ -60,8 +60,7 @@ class Client(FastorObject):
                 try:
                     return self._query(url, attempts=3)
                 except ClientException as e:
-                    print(e)
-                    self.warn("Query has repeatedly failed. Dropping current circuit and constructing a new one")
+                    self.warn(f"Query has repeatedly failed ({e}). Dropping current circuit and constructing a new one")
                     self.scheme.renewCurrentCircuit()
         else:
             self.warn("Query attempted but client is not attached to Tor instance.")
@@ -80,7 +79,7 @@ class Client(FastorObject):
             try:
                 return self.tor_handler.performQuery(url, self.scheme.getCurrentCircuit())
             except TorHandlerException as e:
-                self.warn(f"Query to {url} failed. Retrying {i + 1}/{attempts}...")
+                self.warn(f"Query failed. Retrying {i + 1}/{attempts}...")
                 last_exception = e
         raise ClientException(f"Query has failed {attempts} times") from last_exception
 

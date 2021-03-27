@@ -140,8 +140,7 @@ class TorHandler(FastorObject):
             time_taken = time.time() - start_time
             return QueryResult(bytes_result.decode("utf-8"), time_taken)
         except QueryException as e:
-            self.warn(f"Query failed through circuit {circuit_id} ({e})")
-            raise TorHandlerException("Failed to perform query")
+            raise TorHandlerException("Failed to perform query") from e
         finally:
             # Remove circuit's main status
             self.tor_controller.remove_event_listener(attach_stream)

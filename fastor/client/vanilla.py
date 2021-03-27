@@ -77,7 +77,7 @@ class VanillaScheme(Scheme):
                 break
             except TorHandlerException as e:
                 print(e)
-                self.debug(f"circuit {circuit_path} failed to be constructed. Retrying ...")
+                self.debug(f"Circuit failed to be constructed. Retrying ...")
 
     def _chooseCircuitPath(self) -> List[str]:
         descriptors = self.consensus.descriptors
