@@ -72,7 +72,7 @@ class TorHandler(FastorObject):
         time_created = time.time()
         try:
             descs = list(self.tor_controller.get_network_statuses())
-            self.debug(f"Retrieved {len(descs)} descriptors from consensus")
+            self.info(f"Retrieved {len(descs)} descriptors from consensus")
             return Consensus(time_created, descs)
         except stem.ControllerError:
             self.warn(f"Could not retrieve network descriptors")
@@ -89,7 +89,7 @@ class TorHandler(FastorObject):
         """
         try:
             circuit_id = self.tor_controller.new_circuit(path, await_build=await_build)
-            self.debug(f"Created circuit {circuit_id}")
+            self.info(f"Created circuit {circuit_id}")
             return circuit_id
         except stem.ControllerError:
             self.error(f"Circuit build failed through path: {path}")
@@ -104,7 +104,7 @@ class TorHandler(FastorObject):
         :param circuit_id: circuit id to be closed
         :return:
         """
-        self.debug(f"Closing circuit {circuit_id}")
+        self.info(f"Closing circuit {circuit_id}")
         try:
             self.tor_controller.close_circuit(circuit_id)
         except stem.InvalidArguments:
