@@ -53,7 +53,7 @@ class VanillaScheme(Scheme):
         # If current circuit was created more than 10 minutes ago, generate event
         def renew_circuit_condition():
             res = self.currentCircuit.time_built - time.time() > CIRCUIT_UPDATE_TIME_S
-            self.debug(f"Returned {res}")
+            self.debug(f"Returned {res} time_passed:{self.currentCircuit.time_built - time.time()}")
             return res
         self.scheduler.registerCondition(renew_circuit_condition, RENEW_CIRCUIT_EVENT)
 
