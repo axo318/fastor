@@ -11,13 +11,13 @@ from fastor.torHandler import TorCircuit, TorHandlerException
 # Constants
 GUARD_FP = "7A3E534C033E3836BD5AF223B642853C502AB33A"
 CONSENSUS_UPDATE_TIME_S = 1 * 60 * 60   # 1 hour
-# CIRCUIT_UPDATE_TIME_S = 10 * 60         # 10 minutes
-CIRCUIT_UPDATE_TIME_S = 3
+CIRCUIT_UPDATE_TIME_S = 10 * 60         # 10 minutes
+# CIRCUIT_UPDATE_TIME_S = 3
 
 
 # Event names
-CONSENSUS_UPDATE_EVENT = "consensus_update"
-RENEW_CIRCUIT_EVENT = "renew_current_circuit"
+CONSENSUS_UPDATE_EVENT = "CONSENSUS_UPDATE_EVENT"
+RENEW_CIRCUIT_EVENT = "RENEW_CIRCUIT_EVENT"
 
 
 @ClientType.register('vanilla')
