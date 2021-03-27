@@ -81,18 +81,22 @@ class VanillaScheme(Scheme):
         # Get middles info
         middle_fingerprints = [d.fingerprint for d in middle_descriptors]
         middle_bws = [d.bandwidth for d in middle_descriptors]
+        middle_bws_sum = sum(middle_bws)
+        middle_p = [bw/middle_bws_sum for bw in middle_bws]
 
         # Get exits info
         exit_fingerprints = [d.fingerprint for d in exit_descriptors]
         exit_bws = [d.bandwidth for d in exit_descriptors]
+        exit_bws_sum = sum(exit_bws)
+        exit_p = [bw/exit_bws_sum for bw in exit_bws]
 
         # Select random middle
-        middle_fp = np.random.choice(middle_fingerprints, p=middle_bws)
+        middle_fp = np.random.choice(middle_fingerprints, p=middle_p)
 
         # Select random exit
         exit_fp = middle_fp
         while exit_fp == middle_fp:
-            exit_fp = np.random.choice(exit_fingerprints, p=exit_bws)
+            exit_fp = np.random.choice(exit_fingerprints, p=exit_p)
 
         path = [self.guard_fingerprint, middle_fp, exit_fp]
 
