@@ -1,5 +1,6 @@
 from fastor.client.client import Client
 from fastor.client.utils import ClientType
+from fastor.common import log
 
 # Register imports (For decorators to register client sublcasses)
 import fastor.client.vanilla

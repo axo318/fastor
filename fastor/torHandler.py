@@ -58,20 +58,22 @@ class TorHandler(FastorObject):
     def detach(self) -> None:
         """ Detaches from running Tor instance """
         self.info("Detaching from Tor instance")
-        self.tor_controller.reset_conf('__LeaveStreamsUnattached')
-        self.tor_controller.close()
+        if self.tor_controller:
+            self.tor_controller.reset_conf('__LeaveStreamsUnattached')
+            self.tor_controller.close()
 
     # Consensus #
-    def getDescriptors(self) -> List['stem.descriptor.router_status_entry.RouterStatusEntryV3']:
+    def getConsensus(self) -> 'Consensus':
         """ Retrieves the latest Tor consensus entries and returns them in a list
 
         :raises TorHandlerException
         :return: List containing all router status entries from the consensus
         """
+        time_created = time.time()
         try:
             descs = list(self.tor_controller.get_network_statuses())
             self.debug(f"Retrieved {len(descs)} descriptors from consensus")
-            return descs
+            return Consensus(time_created, descs)
         except stem.ControllerError:
             self.warn(f"Could not retrieve network descriptors")
             raise TorHandlerException("Could not retrieve network descriptors")
@@ -116,7 +118,7 @@ class TorHandler(FastorObject):
 
         :param url: web url
         :param circuit_id: Tor circuit unique id
-        :raises TorHandlerException
+        :raises TorHandlerException if something goes wrong while performing the query
         :return: QueryResult object
         """
         self.debug(f"Performing query to {url} though circuit {circuit_id}")
@@ -194,6 +196,32 @@ class QueryResult(FastorObject):
         :return: float time lapsed
         """
         return self.time_lapsed
+
+
+class Consensus(FastorObject):
+    def __init__(self,
+                 creation_time: float,
+                 descriptors: List['stem.descriptor.router_status_entry.RouterStatusEntryV3']):
+        """ Class holding consensus information
+
+        :param creation_time: Time this consensus was retrieved
+        :param descriptors:
+        """
+        self.creation_time = creation_time
+        self.descriptors = descriptors
+
+
+class TorCircuit(FastorObject):
+    def __init__(self, circuit_id: str, time_built: float, path: List[str]):
+        """ Class containing circuit information
+
+        :param circuit_id:
+        :param time_built:
+        :param path:
+        """
+        self.circuit_id = circuit_id
+        self.time_built = time_built
+        self.path = path
 
 
 class TorHandlerException(Exception):

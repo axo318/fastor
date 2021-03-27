@@ -16,10 +16,10 @@ class TorHandlerTestCase(unittest.TestCase):
         tor_handler.attach()
 
         # Get consensus
-        consensus = tor_handler.getDescriptors()
+        consensus = tor_handler.getConsensus()
 
         # Build random circuit using 2 fingerprints from consensus
-        fps = [desc.fingerprint for desc in consensus]
+        fps = [desc.fingerprint for desc in consensus.descriptors]
 
         # Good
         c_id = tor_handler.createCircuit([fps[0], "2D13F31E8BD2D13B9A1F7E0351FB55ADD142FEED"], await_build=True)

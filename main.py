@@ -1,7 +1,15 @@
-import stem.control
+from fastor.client import getClient
 
-with stem.control.Controller.from_port() as controller:
-        controller.authenticate()
-        relay_fingerprints = [desc.fingerprint for desc in controller.get_network_statuses()]
 
-print(len(relay_fingerprints))
+def main():
+    client = getClient("vanilla")
+    client.attach()
+    res = client.query("http://facebook.com")
+
+    print(res)
+
+    client.detach()
+
+
+if __name__ == "__main__":
+    main()
