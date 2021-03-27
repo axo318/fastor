@@ -42,7 +42,7 @@ class VanillaScheme(Scheme):
         """ Called when scheme is starting, after onStart """
         # If the consensus was created more than 1 hour ago, then generate event
         def consensus_update_condition():
-            return self.consensus.creation_time - time.time() > CONSENSUS_UPDATE_TIME_S
+            return time.time() - self.consensus.creation_time > CONSENSUS_UPDATE_TIME_S
         self.scheduler.registerCondition(consensus_update_condition, CONSENSUS_UPDATE_EVENT)
 
         # When consensus update event is generated, then update the current consensus
@@ -52,8 +52,7 @@ class VanillaScheme(Scheme):
 
         # If current circuit was created more than 10 minutes ago, generate event
         def renew_circuit_condition():
-            res = self.currentCircuit.time_built - time.time() > CIRCUIT_UPDATE_TIME_S
-            self.debug(f"Returned {res} time_passed:{self.currentCircuit.time_built - time.time()}")
+            res = time.time() - self.currentCircuit.time_built > CIRCUIT_UPDATE_TIME_S
             return res
         self.scheduler.registerCondition(renew_circuit_condition, RENEW_CIRCUIT_EVENT)
 
