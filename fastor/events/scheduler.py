@@ -235,6 +235,7 @@ class EventThread(FastorObject):
             for condition in conditions:
                 if condition():
                     event_queue.append(event)
+                    self.debug(f"Generated {event}")
                     break
 
         # Generate events from queue
