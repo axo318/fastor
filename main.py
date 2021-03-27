@@ -5,25 +5,9 @@ from fastor.client.client import ClientException
 def main():
     client = getClient("vanilla")
 
-    attached = False
-    while not attached:
-        try:
-            client.attach()
-            attached = True
-        except ClientException as e:
-            print(e)
+    client.attach()
 
-    res = None
-    while True:
-        try:
-            res = client.query("http://a5a7aram.ddns.net:8000/file.txt")
-        except ClientException as e:
-            print(e)
-
-        if res is not None:
-            break
-        else:
-            client.re
+    res = client.query("http://a5a7aram.ddns.net:8000/file.txt")
 
     print(res)
     client.detach()
