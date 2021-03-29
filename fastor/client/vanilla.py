@@ -8,11 +8,12 @@ from fastor.client.client import Client, Scheme
 from fastor.client.utils import ClientType
 from fastor.torHandler import TorCircuit, TorHandlerException
 
+
 # Constants
 GUARD_FP = "7A3E534C033E3836BD5AF223B642853C502AB33A"
 CONSENSUS_UPDATE_TIME_S = 1 * 60 * 60   # 1 hour
-CIRCUIT_UPDATE_TIME_S = 10 * 60         # 10 minutes
-# CIRCUIT_UPDATE_TIME_S = 3
+# CIRCUIT_UPDATE_TIME_S = 10 * 60         # 10 minutes
+CIRCUIT_UPDATE_TIME_S = 1 * 60          # 1 minute (fast_track)
 
 
 # Event names
@@ -22,16 +23,13 @@ RENEW_CIRCUIT_EVENT = "RENEW_CIRCUIT_EVENT"
 
 @ClientType.register('vanilla')
 class VanillaClient(Client):
-    def _getScheme(self) -> 'Scheme':
+    def _getScheme(self) -> Scheme:
         """ Returns initialized vanilla Tor scheme """
         return VanillaScheme(self, self.tor_handler, GUARD_FP)
 
 
 class VanillaScheme(Scheme):
-
-    def __init__(self, *args, **kwargs):
-        """ Tor Vanilla circuit choosing scheme """
-        super().__init__(*args, **kwargs)
+    """ Tor Vanilla circuit choosing scheme """
 
     def onStart(self) -> None:
         """ Called when the scheme is starting """
@@ -62,8 +60,14 @@ class VanillaScheme(Scheme):
 
     def renewCurrentCircuit(self) -> None:
         """ Renew current circuit (because of possible errors) """
-        self._closeCurrentCircuit()
-        self._createNewCurrentCircuit()
+        self.thread_lock.acquire()
+        try:
+            # THREAD SAFE CODE #
+            self._closeCurrentCircuit()
+            self._createNewCurrentCircuit()
+            # # # # # # # # # #
+        finally:
+            self.thread_lock.release()
 
     def onStop(self) -> None:
         """ Called when scheme is terminating """

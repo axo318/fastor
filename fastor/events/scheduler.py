@@ -222,6 +222,7 @@ class EventThread(FastorObject):
     def stop(self):
         """ Stops event handling thread """
         if self.repeatedTimer:
+            self.info("Stopping")
             self.repeatedTimer.stop()
 
     # Private

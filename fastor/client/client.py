@@ -1,4 +1,5 @@
 from typing import List
+from threading import Lock
 
 from fastor.common import FastorObject
 from fastor.events.scheduler import Scheduler
@@ -48,20 +49,24 @@ class Client(FastorObject):
         self.tor_handler.detach()
         self.attached = False
 
-    def query(self, url: str) -> QueryResult:
+    def query(self, url: str, circuit_attempts=2) -> QueryResult:
         """ Sends HTTP query to the url provided with an empty query, and returns the response
 
         :param url: URL to send pycurl to
+        :param circuit_attempts: How many different circuits to try if request repeatedly fails
         :raises ClientException if client not attached to Tor instance
         :return: QueryResult object containing the response
         """
         if self.attached:
-            while True:
+            for _ in range(circuit_attempts):
                 try:
                     return self._query(url, attempts=3)
                 except ClientException as e:
                     self.warn(f"Query has repeatedly failed ({e}). Dropping current circuit and constructing a new one")
+                    # self.warn(f"Query has repeatedly failed ({e}). Skipping")
                     self.scheme.renewCurrentCircuit()
+            self.warn(f"Query failed after {circuit_attempts} circuit_attempts")
+            raise ClientException(f"Query failed after {circuit_attempts} circuit_attempts")
         else:
             self.warn("Query attempted but client is not attached to Tor instance.")
             raise ClientException("Query attempted but client is not attached to Tor instance.")
@@ -79,7 +84,7 @@ class Client(FastorObject):
             try:
                 return self.tor_handler.performQuery(url, self.scheme.getCurrentCircuit())
             except TorHandlerException as e:
-                self.warn(f"Query failed. Retrying {i + 1}/{attempts}...")
+                self.warn(f"Query failed. Tried {i + 1}/{attempts}. Retrying...")
                 last_exception = e
         raise ClientException(f"Query has failed {attempts} times") from last_exception
 
@@ -103,6 +108,7 @@ class Scheme(FastorObject):
         self.client = client
         self.tor_handler = tor_handler
         self.guard_fingerprint = guard_fingerprint
+        self.thread_lock = Lock()
         self.scheduler = Scheduler()
 
         self.consensus: Consensus = None
