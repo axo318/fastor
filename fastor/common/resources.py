@@ -1,3 +1,16 @@
+#########
+# PATHS #
+#########
+import os
+
+_file_dir = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.join(_file_dir, '..')
+
+RESOURCES_DIR = os.path.join(ROOT_DIR, "resources")
+
+RELAY_SCORES_CSV_PATH = os.path.join(RESOURCES_DIR, 'relay_scores.csv')
+VALIDATED_DOMAINS_CSV_PATH = os.path.join(RESOURCES_DIR, 'validatedDomains.csv')
+
 
 ##########
 # COLORS #

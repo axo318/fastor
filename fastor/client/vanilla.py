@@ -86,33 +86,15 @@ class VanillaScheme(Scheme):
                 self.debug(f"Circuit failed to be constructed. Retrying ...")
 
     def _chooseCircuitPath(self) -> List[str]:
-        descriptors = self.consensus.descriptors
-        middle_descriptors = descriptors
-        exit_descriptors = [d for d in descriptors if stem.Flag.EXIT in d.flags]
-
-        # Get middles info
-        middle_fingerprints = [d.fingerprint for d in middle_descriptors]
-        middle_bws = [d.bandwidth for d in middle_descriptors]
-        middle_bws_sum = sum(middle_bws)
-        middle_p = [bw/middle_bws_sum for bw in middle_bws]
-
-        # Get exits info
-        exit_fingerprints = [d.fingerprint for d in exit_descriptors]
-        exit_bws = [d.bandwidth for d in exit_descriptors]
-        exit_bws_sum = sum(exit_bws)
-        exit_p = [bw/exit_bws_sum for bw in exit_bws]
-
         # Select random middle
-        middle_fp = np.random.choice(middle_fingerprints, p=middle_p)
+        middle_fp = np.random.choice(self.consensus.middle_fingerprints, p=self.consensus.middle_probabilities)
 
         # Select random exit
         exit_fp = middle_fp
         while exit_fp == middle_fp:
-            exit_fp = np.random.choice(exit_fingerprints, p=exit_p)
+            exit_fp = np.random.choice(self.consensus.exit_fingerprints, p=self.consensus.exit_probabilities)
 
-        path = [self.guard_fingerprint, middle_fp, exit_fp]
-
-        return path
+        return [self.guard_fingerprint, middle_fp, exit_fp]
 
     def _constructCircuit(self, path: List[str]) -> TorCircuit:
         """ Attempts to construct the requested circuit

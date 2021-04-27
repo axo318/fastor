@@ -9,7 +9,7 @@ import fastor.client.fastor
 
 # FACTORY
 
-def getClient(client_type: str = 'fastor') -> 'Client':
+def getClient(client_type: str = 'fastor', **args) -> 'Client':
     """ Factory method returns an initialized object of the required Client Class
 
     :param client_type: defines the client Tor scheme
@@ -20,7 +20,7 @@ def getClient(client_type: str = 'fastor') -> 'Client':
     DefaultSubclass = ClientType.d['fastor']
 
     if client_type:
-        return ClientSubclass()
+        return ClientSubclass(**args)
     else:
         log.warn(f"Given client_type:'{client_type}' was not recognised. Returning default fastor scheme client.")
         return DefaultSubclass()

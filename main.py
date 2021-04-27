@@ -7,8 +7,23 @@ import pandas as pd
 import json
 
 from fastor.client import getClient
+from fastor.common import log
+from fastor.common.resources import VALIDATED_DOMAINS_CSV_PATH
 
-SCHEME = "vanilla"
+# VARIABLES
+MEAN = "mean"
+VARIANCE = "variance"
+STD = "standard deviation"
+MEAD = "mean absolute deviation"
+MAD = "median absolute deviation"
+
+
+# OPTIONS
+SCHEME = "fastor"
+POOL_SIZE = 5
+PA_PARAMETER = 0.0
+SCORE_METRIC = MAD
+
 RESULTS_DIR = "/home/pi/results/"
 RESULT_EXT = "results"
 
@@ -20,8 +35,14 @@ def getNewResultsFileName() -> str:
     """
     res_files = [x for x in os.listdir(RESULTS_DIR) if x.split('.')[-1] == RESULT_EXT]
     scheme_res_files = [x for x in res_files if SCHEME in x]
-    n = len(scheme_res_files)
-    return f"{SCHEME}_{n}.{RESULT_EXT}"
+
+    if SCHEME == "fastor":
+        n = len([x for x in scheme_res_files if str(PA_PARAMETER) in x and str(POOL_SIZE) in x])
+        name = f"{SCHEME}_PA{PA_PARAMETER}_POOL{POOL_SIZE}_{n}.{RESULT_EXT}"
+    else:
+        n = len(scheme_res_files)
+        name = f"{SCHEME}_{n}.{RESULT_EXT}"
+    return name
 
 
 def saveResults(website_ttlbs: Dict[str, List[float]]):
@@ -39,15 +60,27 @@ def saveResults(website_ttlbs: Dict[str, List[float]]):
 
 def main():
     # Get top websites
-    df = pd.read_csv('/home/pi/fastor/fastor/resources/validatedDomains.csv')
+    df = pd.read_csv(VALIDATED_DOMAINS_CSV_PATH)
     web_queue = list(df['website'])
     n_sites = len(web_queue)
 
     # Create results dictionary [website -> List[float]]
     website_ttlbs = defaultdict(list)
 
-    # Wrap with try in case there is an unexpected exception
-    client = getClient(SCHEME)
+    # Init client with options
+    if SCHEME == "fastor":
+        client = getClient(SCHEME,
+                           pool_size=POOL_SIZE,
+                           pa_parameter=PA_PARAMETER,
+                           score_metric=SCORE_METRIC)
+        log.info("Starting fastor scheme with the following settings:")
+        log.info(f" POOL_SIZE: {POOL_SIZE}")
+        log.info(f" PA_PARAMETER: {PA_PARAMETER}")
+        log.info(f" SCORE_METRIC: {SCORE_METRIC}")
+    else:
+        client = getClient(SCHEME)
+        log.info(f"Starting {SCHEME} scheme")
+
     try:
         # Init client
         client.attach()
@@ -73,10 +106,14 @@ def main():
         print(f"Exception occurred {e}. Exiting")
     finally:
         client.detach()
-        print("Saving and exiting")
+        print(f"Parameters were: "
+              f"pool_size={POOL_SIZE}, "
+              f"pa_parameter={PA_PARAMETER}, "
+              f"score_metric={SCORE_METRIC}")
+        print("Saving and exiting...")
         saveResults(website_ttlbs)
 
-    print("goodbye")
+    print("Goodbye")
     exit()
 
 

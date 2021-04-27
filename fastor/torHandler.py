@@ -121,7 +121,7 @@ class TorHandler(FastorObject):
         :raises TorHandlerException if something goes wrong while performing the query
         :return: QueryResult object
         """
-        self.debug(f"Performing query to {url} though circuit {circuit_id}")
+        self.debug(f"Performing query to {url} through circuit {circuit_id}")
 
         def attach_stream(stream):
             if stream.status == 'NEW':
@@ -209,6 +209,23 @@ class Consensus(FastorObject):
         """
         self.creation_time = creation_time
         self.descriptors = descriptors
+
+        middle_descriptors = descriptors
+        exit_descriptors = [d for d in descriptors if stem.Flag.EXIT in d.flags]
+
+        # Get middles info
+        self.middle_fingerprints = [d.fingerprint for d in middle_descriptors]
+        middle_bws = [d.bandwidth for d in middle_descriptors]
+        middle_bws_sum = sum(middle_bws)
+        self.middle_probabilities = [bw / middle_bws_sum for bw in middle_bws]
+
+        # Get exits info
+        self.exit_fingerprints = [d.fingerprint for d in exit_descriptors]
+        exit_bws = [d.bandwidth for d in exit_descriptors]
+        exit_bws_sum = sum(exit_bws)
+        self.exit_probabilities = [bw / exit_bws_sum for bw in exit_bws]
+
+
 
 
 class TorCircuit(FastorObject):
